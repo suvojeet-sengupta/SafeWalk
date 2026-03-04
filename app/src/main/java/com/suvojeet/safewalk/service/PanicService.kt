@@ -1,26 +1,32 @@
 package com.suvojeet.safewalk.service
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.net.Uri
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationServices
 import com.suvojeet.safewalk.MainActivity
 import com.suvojeet.safewalk.R
 import com.suvojeet.safewalk.data.local.db.dao.ContactDao
+import com.suvojeet.safewalk.data.local.prefs.PreferencesManager
 import com.suvojeet.safewalk.data.model.LocationData
 import com.suvojeet.safewalk.data.remote.firebase.LocationRepository
 import com.suvojeet.safewalk.util.Constants
 import com.suvojeet.safewalk.util.SmsHelper
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -33,6 +39,9 @@ class PanicService : LifecycleService() {
 
     @Inject
     lateinit var contactDao: ContactDao
+
+    @Inject
+    lateinit var preferencesManager: PreferencesManager
 
     override fun onCreate() {
         super.onCreate()
@@ -54,10 +63,13 @@ class PanicService : LifecycleService() {
 
     @Suppress("MissingPermission")
     private fun triggerPanicSequence() {
-        // Vibrate urgently
-        vibrateDevice()
-
         lifecycleScope.launch {
+            // Check vibrate preference before vibrating
+            val shouldVibrate = preferencesManager.isPanicVibrateEnabled.first()
+            if (shouldVibrate) {
+                vibrateDevice()
+            }
+
             try {
                 // Get current location
                 val fusedClient = LocationServices.getFusedLocationProviderClient(this@PanicService)
@@ -77,24 +89,50 @@ class PanicService : LifecycleService() {
                 locationRepository.pushLocation(locationData)
 
                 // Send SMS to all active contacts
-                val contacts = contactDao.getActiveContacts()
-                contacts.collect { contactList ->
-                    contactList.forEach { contact ->
-                        SmsHelper.sendEmergencySms(
-                            context = this@PanicService,
-                            phoneNumber = contact.phone,
-                            userName = "SafeWalk User",
-                            latitude = lat,
-                            longitude = lon,
-                        )
-                    }
-                    // Start high-frequency location tracking
-                    LocationTrackingService.start(this@PanicService, panicMode = true)
-                    stopSelf()
+                val contactList = contactDao.getActiveContacts().first()
+                val userName = preferencesManager.userName.first()
+                contactList.forEach { contact ->
+                    SmsHelper.sendEmergencySms(
+                        context = this@PanicService,
+                        phoneNumber = contact.phone,
+                        userName = userName,
+                        latitude = lat,
+                        longitude = lon,
+                    )
                 }
+
+                // Auto-call first contact if enabled
+                val shouldAutoCall = preferencesManager.isAutoCallEnabled.first()
+                if (shouldAutoCall && contactList.isNotEmpty()) {
+                    val firstContact = contactList.minByOrNull { it.priority }
+                        ?: contactList.first()
+                    autoCallContact(firstContact.phone)
+                }
+
+                // Start high-frequency location tracking
+                LocationTrackingService.start(this@PanicService, panicMode = true)
+                stopSelf()
             } catch (e: Exception) {
                 e.printStackTrace()
                 stopSelf()
+            }
+        }
+    }
+
+    private fun autoCallContact(phoneNumber: String) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CALL_PHONE,
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            try {
+                val callIntent = Intent(Intent.ACTION_CALL).apply {
+                    data = Uri.parse("tel:$phoneNumber")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(callIntent)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

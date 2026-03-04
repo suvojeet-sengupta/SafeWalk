@@ -1,5 +1,6 @@
 package com.suvojeet.safewalk.ui.home
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.location.LocationServices
 import com.suvojeet.safewalk.service.PanicService
 import com.suvojeet.safewalk.ui.home.components.PanicButton
 import com.suvojeet.safewalk.ui.home.components.QuickShareCard
@@ -110,6 +112,17 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
+        if (!timerActive) {
+            // Show "Start Timer" button when timer is not active
+            androidx.compose.material3.OutlinedButton(
+                onClick = { viewModel.startTimer() },
+                modifier = Modifier.fillMaxWidth(),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            ) {
+                Text("⏱️ Start Check-in Timer (15 min)")
+            }
+        }
+
         if (timerActive) {
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -118,16 +131,37 @@ fun HomeScreen(
         QuickShareCard(
             isLocationSharing = isLocationSharing,
             onToggleSharing = { enabled ->
-                // TODO: Start/stop LocationTrackingService
+                viewModel.toggleLocationSharing(context, enabled)
                 Toast.makeText(
                     context,
-                    if (enabled) "Location sharing started" else "Location sharing stopped",
+                    if (enabled) "📍 Location sharing started" else "Location sharing stopped",
                     Toast.LENGTH_SHORT,
                 ).show()
             },
             onShareLink = {
-                // TODO: Generate and share link
-                Toast.makeText(context, "Share link copied!", Toast.LENGTH_SHORT).show()
+                // Get last known location and share via Android share sheet
+                try {
+                    val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                    fusedClient.lastLocation.addOnSuccessListener { location ->
+                        if (location != null) {
+                            val mapLink =
+                                "https://maps.google.com/maps?q=${location.latitude},${location.longitude}"
+                            val shareText =
+                                "📍 I'm sharing my live location via SafeWalk:\n$mapLink"
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
+                            context.startActivity(
+                                Intent.createChooser(shareIntent, "Share location via"),
+                            )
+                        } else {
+                            Toast.makeText(context, "Location not available yet", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: SecurityException) {
+                    Toast.makeText(context, "Location permission required", Toast.LENGTH_SHORT).show()
+                }
             },
         )
 

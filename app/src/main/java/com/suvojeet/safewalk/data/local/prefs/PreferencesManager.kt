@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,7 @@ class PreferencesManager @Inject constructor(
         val AUTO_CALL_ENABLED = booleanPreferencesKey("auto_call_enabled")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val DARK_THEME = booleanPreferencesKey("dark_theme")
+        val USER_NAME = stringPreferencesKey("user_name")
     }
 
     // Shake detection
@@ -90,5 +92,12 @@ class PreferencesManager @Inject constructor(
 
     suspend fun setDarkTheme(dark: Boolean) {
         dataStore.edit { it[Keys.DARK_THEME] = dark }
+    }
+
+    // User name
+    val userName: Flow<String> = dataStore.data.map { it[Keys.USER_NAME] ?: "SafeWalk User" }
+
+    suspend fun setUserName(name: String) {
+        dataStore.edit { it[Keys.USER_NAME] = name }
     }
 }

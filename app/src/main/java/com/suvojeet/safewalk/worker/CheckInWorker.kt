@@ -7,6 +7,7 @@ import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.google.android.gms.location.LocationServices
 import com.suvojeet.safewalk.R
 import com.suvojeet.safewalk.data.local.db.dao.ContactDao
 import com.suvojeet.safewalk.util.Constants
@@ -14,6 +15,7 @@ import com.suvojeet.safewalk.util.SmsHelper
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
 
 @HiltWorker
 class CheckInWorker @AssistedInject constructor(
@@ -34,12 +36,27 @@ class CheckInWorker @AssistedInject constructor(
         }
     }
 
+    @Suppress("MissingPermission")
     private suspend fun handleFirstEscalation(): Result {
-        // First escalation: Send SMS to contacts
+        // First escalation: Send SMS to contacts with real location
         showNotification(
             "⏱️ Check-in Missed",
             "You didn't check in! Alerting your emergency contacts...",
         )
+
+        // Get last known location
+        var lat = 0.0
+        var lon = 0.0
+        try {
+            val fusedClient = LocationServices.getFusedLocationProviderClient(applicationContext)
+            val location = fusedClient.lastLocation.await()
+            if (location != null) {
+                lat = location.latitude
+                lon = location.longitude
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         val contacts = contactDao.getActiveContacts().first()
         contacts.forEach { contact ->
@@ -47,8 +64,8 @@ class CheckInWorker @AssistedInject constructor(
                 context = applicationContext,
                 phoneNumber = contact.phone,
                 userName = "SafeWalk User",
-                latitude = 0.0, // TODO: get last known location
-                longitude = 0.0,
+                latitude = lat,
+                longitude = lon,
             )
         }
 

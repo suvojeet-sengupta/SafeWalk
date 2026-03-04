@@ -30,6 +30,9 @@ class SettingsViewModel @Inject constructor(
     val darkTheme: StateFlow<Boolean> = preferencesManager.isDarkTheme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val userName: StateFlow<String> = preferencesManager.userName
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SafeWalk User")
+
     fun setShakeEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesManager.setShakeEnabled(enabled) }
     }
@@ -48,5 +51,9 @@ class SettingsViewModel @Inject constructor(
 
     fun setDarkTheme(dark: Boolean) {
         viewModelScope.launch { preferencesManager.setDarkTheme(dark) }
+    }
+
+    fun setUserName(name: String) {
+        viewModelScope.launch { preferencesManager.setUserName(name) }
     }
 }
