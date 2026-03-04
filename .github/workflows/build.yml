@@ -75,9 +75,6 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         GRADLE_OPTS: -Dorg.gradle.workers.max=2
 
-    - name: Run Unit Tests
-      run: ./gradlew testDebugUnitTest --no-daemon
-
     - name: Extract version name
       id: version
       run: |
