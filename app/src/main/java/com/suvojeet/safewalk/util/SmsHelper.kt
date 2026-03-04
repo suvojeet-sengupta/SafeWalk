@@ -29,12 +29,14 @@ object SmsHelper {
 
         return try {
             val mapLink = "https://maps.google.com/maps?q=$latitude,$longitude"
+            val deviceInfo = DeviceInfoHelper.buildDeviceInfoString(context)
             val message = buildString {
                 append("🚨 EMERGENCY ALERT from $userName!\n\n")
                 append("I need help! This is an automated safety alert from SafeWalk.\n\n")
                 append("📍 My current location:\n")
                 append("$mapLink\n\n")
-                append("Please contact me or emergency services immediately.")
+                append(deviceInfo)
+                append("\n\nPlease contact me or emergency services immediately.")
             }
 
             val smsManager = context.getSystemService(SmsManager::class.java)

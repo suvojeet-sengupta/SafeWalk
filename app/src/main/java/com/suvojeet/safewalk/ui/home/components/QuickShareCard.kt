@@ -38,7 +38,7 @@ fun QuickShareCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -89,8 +89,8 @@ fun QuickShareCard(
                         checked = isLocationSharing,
                         onCheckedChange = onToggleSharing,
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = SafeGreen,
-                            checkedTrackColor = SafeGreen.copy(alpha = 0.3f),
+                            checkedThumbColor = MaterialTheme.colorScheme.secondary,
+                            checkedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
                         ),
                     )
                 }

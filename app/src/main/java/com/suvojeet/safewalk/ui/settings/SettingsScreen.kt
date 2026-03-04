@@ -2,17 +2,33 @@ package com.suvojeet.safewalk.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PhoneInTalk
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -25,12 +41,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.suvojeet.safewalk.ui.theme.SafeGreen
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -41,6 +58,7 @@ fun SettingsScreen(
     val autoCall by viewModel.autoCall.collectAsStateWithLifecycle()
     val darkTheme by viewModel.darkTheme.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val timerDuration by viewModel.timerDuration.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -48,21 +66,22 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
+        // ── Header ──
         Text(
             text = "Settings",
-            style = MaterialTheme.typography.headlineLarge,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
             text = "Configure your safety preferences",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Profile section
-        SettingsSection(title = "Profile") {
+        // ── Profile Section ──
+        SettingsSection(title = "Profile", icon = Icons.Outlined.Person) {
             Text(
                 text = "Your Name",
                 style = MaterialTheme.typography.bodyMedium,
@@ -90,8 +109,51 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Shake Detection section
-        SettingsSection(title = "Shake Detection") {
+        // ── Check-in Timer Section ──
+        SettingsSection(title = "Check-in Timer", icon = Icons.Outlined.Timer) {
+            Text(
+                text = "Default Timer Duration",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = "Set how long before a check-in is needed",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val presetOptions = listOf(5, 10, 15, 20, 30, 45, 60)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                presetOptions.forEach { minutes ->
+                    FilterChip(
+                        selected = timerDuration == minutes,
+                        onClick = { viewModel.setTimerDuration(minutes) },
+                        label = { Text("$minutes min") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Currently: $timerDuration minutes",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ── Shake Detection Section ──
+        SettingsSection(title = "Shake Detection", icon = Icons.Outlined.Vibration) {
             SettingsToggle(
                 title = "Enable Shake Trigger",
                 description = "Shake phone to trigger emergency alert",
@@ -100,21 +162,31 @@ fun SettingsScreen(
             )
 
             if (shakeEnabled) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    Text(
-                        text = "Sensitivity",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        text = when {
-                            shakeSensitivity < 8f -> "Very sensitive"
-                            shakeSensitivity < 12f -> "Normal"
-                            else -> "Less sensitive"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                )
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Sensitivity",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Text(
+                            text = when {
+                                shakeSensitivity < 8f -> "Very sensitive"
+                                shakeSensitivity < 12f -> "Normal"
+                                else -> "Less sensitive"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                     Slider(
                         value = shakeSensitivity,
                         onValueChange = { viewModel.setShakeSensitivity(it) },
@@ -123,6 +195,7 @@ fun SettingsScreen(
                         colors = SliderDefaults.colors(
                             thumbColor = MaterialTheme.colorScheme.primary,
                             activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                         ),
                     )
                 }
@@ -131,13 +204,17 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Panic Settings section
-        SettingsSection(title = "Panic Alert") {
+        // ── Panic Alert Section ──
+        SettingsSection(title = "Panic Alert", icon = Icons.Outlined.Shield) {
             SettingsToggle(
                 title = "Vibrate on Panic",
                 description = "Vibrate device when panic is triggered",
                 checked = panicVibrate,
                 onCheckedChange = { viewModel.setPanicVibrate(it) },
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
             )
             SettingsToggle(
                 title = "Auto-call First Contact",
@@ -149,8 +226,8 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Appearance section
-        SettingsSection(title = "Appearance") {
+        // ── Appearance Section ──
+        SettingsSection(title = "Appearance", icon = Icons.Outlined.DarkMode) {
             SettingsToggle(
                 title = "Dark Theme",
                 description = "Use dark theme for better night visibility",
@@ -167,27 +244,42 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
 private fun SettingsSection(
     title: String,
+    icon: ImageVector? = null,
     content: @Composable () -> Unit,
 ) {
-    Card(
+    ElevatedCard(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
+        colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
             content()
         }
@@ -204,7 +296,7 @@ private fun SettingsToggle(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -220,12 +312,13 @@ private fun SettingsToggle(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Spacer(modifier = Modifier.width(12.dp))
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = SafeGreen,
-                checkedTrackColor = SafeGreen.copy(alpha = 0.3f),
+                checkedThumbColor = MaterialTheme.colorScheme.secondary,
+                checkedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
             ),
         )
     }

@@ -22,6 +22,7 @@ class CheckInWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted private val workerParams: WorkerParameters,
     private val contactDao: ContactDao,
+    private val preferencesManager: com.suvojeet.safewalk.data.local.prefs.PreferencesManager,
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -59,11 +60,12 @@ class CheckInWorker @AssistedInject constructor(
         }
 
         val contacts = contactDao.getActiveContacts().first()
+        val userName = preferencesManager.userName.first()
         contacts.forEach { contact ->
             SmsHelper.sendEmergencySms(
                 context = applicationContext,
                 phoneNumber = contact.phone,
-                userName = "SafeWalk User",
+                userName = userName,
                 latitude = lat,
                 longitude = lon,
             )

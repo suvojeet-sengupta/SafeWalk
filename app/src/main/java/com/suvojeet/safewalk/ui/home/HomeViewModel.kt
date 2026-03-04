@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -49,6 +50,12 @@ class HomeViewModel @Inject constructor(
 
     private var timerJob: Job? = null
 
+    val defaultTimerDuration: StateFlow<Int> = preferencesManager.defaultTimerDuration
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_CHECK_IN_DURATION_MIN)
+
+    private val _timerTotalSeconds = MutableStateFlow(0L)
+    val timerTotalSeconds: StateFlow<Long> = _timerTotalSeconds.asStateFlow()
+
     fun onPanicTriggered() {
         _isPanicActive.value = true
     }
@@ -73,23 +80,29 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Start the check-in timer with actual countdown logic.
+     * Start the check-in timer with custom or default duration.
+     * Saves the selected duration as the new default.
      */
-    fun startTimer(durationMinutes: Int = Constants.DEFAULT_CHECK_IN_DURATION_MIN) {
-        timerJob?.cancel()
-        val totalSeconds = durationMinutes * 60L
-        _timerRemainingSeconds.value = totalSeconds
-        _timerActive.value = true
+    fun startTimer(durationMinutes: Int? = null) {
+        viewModelScope.launch {
+            val duration = durationMinutes ?: preferencesManager.defaultTimerDuration.first()
+            preferencesManager.setDefaultTimerDuration(duration)
 
-        timerJob = viewModelScope.launch {
-            while (_timerRemainingSeconds.value > 0 && _timerActive.value) {
-                delay(1000L)
-                _timerRemainingSeconds.value -= 1
-            }
-            // Timer expired without check-in → schedule escalation workers
-            if (_timerActive.value && _timerRemainingSeconds.value <= 0) {
-                _timerActive.value = false
-                scheduleEscalation()
+            timerJob?.cancel()
+            val totalSeconds = duration * 60L
+            _timerTotalSeconds.value = totalSeconds
+            _timerRemainingSeconds.value = totalSeconds
+            _timerActive.value = true
+
+            timerJob = viewModelScope.launch {
+                while (_timerRemainingSeconds.value > 0 && _timerActive.value) {
+                    delay(1000L)
+                    _timerRemainingSeconds.value -= 1
+                }
+                if (_timerActive.value && _timerRemainingSeconds.value <= 0) {
+                    _timerActive.value = false
+                    scheduleEscalation()
+                }
             }
         }
     }

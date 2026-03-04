@@ -3,6 +3,7 @@ package com.suvojeet.safewalk.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suvojeet.safewalk.data.local.prefs.PreferencesManager
+import com.suvojeet.safewalk.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +34,9 @@ class SettingsViewModel @Inject constructor(
     val userName: StateFlow<String> = preferencesManager.userName
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SafeWalk User")
 
+    val timerDuration: StateFlow<Int> = preferencesManager.defaultTimerDuration
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_CHECK_IN_DURATION_MIN)
+
     fun setShakeEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesManager.setShakeEnabled(enabled) }
     }
@@ -55,5 +59,9 @@ class SettingsViewModel @Inject constructor(
 
     fun setUserName(name: String) {
         viewModelScope.launch { preferencesManager.setUserName(name) }
+    }
+
+    fun setTimerDuration(minutes: Int) {
+        viewModelScope.launch { preferencesManager.setDefaultTimerDuration(minutes) }
     }
 }
