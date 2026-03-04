@@ -37,6 +37,10 @@ class PreferencesManager @Inject constructor(
         val DARK_THEME = booleanPreferencesKey("dark_theme")
         val USER_NAME = stringPreferencesKey("user_name")
         val USER_PHONE = stringPreferencesKey("user_phone")
+        val SIREN_ENABLED = booleanPreferencesKey("siren_enabled")
+        val STROBE_ENABLED = booleanPreferencesKey("strobe_enabled")
+        val LOW_BATTERY_ALERT = booleanPreferencesKey("low_battery_alert")
+        val NETWORK_LOSS_ALERT = booleanPreferencesKey("network_loss_alert")
     }
 
     // Shake detection
@@ -107,5 +111,29 @@ class PreferencesManager @Inject constructor(
 
     suspend fun setUserPhone(phone: String) {
         dataStore.edit { it[Keys.USER_PHONE] = phone }
+    }
+
+    // Deterrent Mode
+    val isSirenEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.SIREN_ENABLED] ?: true }
+    val isStrobeEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.STROBE_ENABLED] ?: true }
+
+    suspend fun setSirenEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.SIREN_ENABLED] = enabled }
+    }
+
+    suspend fun setStrobeEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.STROBE_ENABLED] = enabled }
+    }
+
+    // System Monitoring
+    val isLowBatteryAlertEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.LOW_BATTERY_ALERT] ?: true }
+    val isNetworkLossAlertEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.NETWORK_LOSS_ALERT] ?: true }
+
+    suspend fun setLowBatteryAlert(enabled: Boolean) {
+        dataStore.edit { it[Keys.LOW_BATTERY_ALERT] = enabled }
+    }
+
+    suspend fun setNetworkLossAlert(enabled: Boolean) {
+        dataStore.edit { it[Keys.NETWORK_LOSS_ALERT] = enabled }
     }
 }

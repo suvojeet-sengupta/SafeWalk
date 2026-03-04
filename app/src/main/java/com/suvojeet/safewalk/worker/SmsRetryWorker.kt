@@ -28,6 +28,7 @@ class SmsRetryWorker @AssistedInject constructor(
         val userPhone = inputData.getString(KEY_USER_PHONE) ?: ""
         val lat = inputData.getDouble(KEY_LAT, 0.0)
         val lon = inputData.getDouble(KEY_LON, 0.0)
+        val customMessage = inputData.getString(KEY_CUSTOM_MESSAGE)
         val retryCount = inputData.getInt(KEY_RETRY_COUNT, 1)
         val maxRetries = inputData.getInt(KEY_MAX_RETRIES, Constants.SMS_MAX_RETRIES)
 
@@ -57,6 +58,7 @@ class SmsRetryWorker @AssistedInject constructor(
             userPhone = userPhone,
             retryCount = retryCount,
             maxRetries = maxRetries,
+            customMessage = customMessage,
         )
 
         return if (sent) {
@@ -77,5 +79,6 @@ class SmsRetryWorker @AssistedInject constructor(
         const val KEY_LON = "longitude"
         const val KEY_RETRY_COUNT = "retry_count"
         const val KEY_MAX_RETRIES = "max_retries"
+        const val KEY_CUSTOM_MESSAGE = "custom_message"
     }
 }

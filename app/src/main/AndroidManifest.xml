@@ -122,6 +122,16 @@
             </intent-filter>
         </receiver>
 
+        <!-- System Monitor Receiver (Battery/Network) -->
+        <receiver
+            android:name=".receiver.SystemMonitorReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BATTERY_LOW" />
+                <action android:name="android.intent.action.AIRPLANE_MODE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

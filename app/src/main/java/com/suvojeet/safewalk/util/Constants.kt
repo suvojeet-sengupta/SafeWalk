@@ -45,4 +45,7 @@ object Constants {
     // Work tags
     const val WORK_TAG_CHECK_IN = "check_in_timer"
     const val WORK_TAG_SMS_RETRY = "sms_retry"
+
+    // Deterrent Mode
+    const val STROBE_DELAY_MS = 100L
 }

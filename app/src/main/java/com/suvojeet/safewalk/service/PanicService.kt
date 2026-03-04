@@ -45,6 +45,9 @@ class PanicService : LifecycleService() {
     @Inject
     lateinit var preferencesManager: PreferencesManager
 
+    @Inject
+    lateinit var deterrentManager: com.suvojeet.safewalk.util.DeterrentManager
+
     private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
@@ -84,6 +87,11 @@ class PanicService : LifecycleService() {
     @Suppress("MissingPermission")
     private fun triggerPanicSequence() {
         lifecycleScope.launch {
+            // Start deterrent effects (Siren/Strobe)
+            val sirenEnabled = preferencesManager.isSirenEnabled.first()
+            val strobeEnabled = preferencesManager.isStrobeEnabled.first()
+            deterrentManager.start(sirenEnabled, strobeEnabled)
+
             // Check vibrate preference before vibrating
             val shouldVibrate = preferencesManager.isPanicVibrateEnabled.first()
             if (shouldVibrate) {
@@ -205,6 +213,7 @@ class PanicService : LifecycleService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        deterrentManager.stop()
         wakeLock?.let {
             if (it.isHeld) {
                 it.release()
@@ -220,6 +229,11 @@ class PanicService : LifecycleService() {
         fun start(context: Context) {
             val intent = Intent(context, PanicService::class.java)
             context.startForegroundService(intent)
+        }
+
+        fun stop(context: Context) {
+            val intent = Intent(context, PanicService::class.java)
+            context.stopService(intent)
         }
     }
 }

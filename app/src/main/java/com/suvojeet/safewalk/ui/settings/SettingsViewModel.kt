@@ -40,6 +40,18 @@ class SettingsViewModel @Inject constructor(
     val timerDuration: StateFlow<Int> = preferencesManager.defaultTimerDuration
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_CHECK_IN_DURATION_MIN)
 
+    val sirenEnabled: StateFlow<Boolean> = preferencesManager.isSirenEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val strobeEnabled: StateFlow<Boolean> = preferencesManager.isStrobeEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val lowBatteryAlert: StateFlow<Boolean> = preferencesManager.isLowBatteryAlertEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val networkLossAlert: StateFlow<Boolean> = preferencesManager.isNetworkLossAlertEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     fun setShakeEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesManager.setShakeEnabled(enabled) }
     }
@@ -70,5 +82,21 @@ class SettingsViewModel @Inject constructor(
 
     fun setTimerDuration(minutes: Int) {
         viewModelScope.launch { preferencesManager.setDefaultTimerDuration(minutes) }
+    }
+
+    fun setSirenEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesManager.setSirenEnabled(enabled) }
+    }
+
+    fun setStrobeEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesManager.setStrobeEnabled(enabled) }
+    }
+
+    fun setLowBatteryAlert(enabled: Boolean) {
+        viewModelScope.launch { preferencesManager.setLowBatteryAlert(enabled) }
+    }
+
+    fun setNetworkLossAlert(enabled: Boolean) {
+        viewModelScope.launch { preferencesManager.setNetworkLossAlert(enabled) }
     }
 }

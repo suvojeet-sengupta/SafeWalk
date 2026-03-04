@@ -31,12 +31,17 @@ object SmsHelper {
         userPhone: String,
         latitude: Double,
         longitude: Double,
+        customMessage: String? = null,
     ): String {
         val mapLink = "https://maps.google.com/maps?q=$latitude,$longitude"
         val deviceInfo = DeviceInfoHelper.buildDeviceInfoString(context)
         return buildString {
-            append("🚨 EMERGENCY ALERT from $userName!\n\n")
-            append("I need help! This is an automated safety alert from SafeWalk.\n\n")
+            if (customMessage != null) {
+                append("🚨 $customMessage\n\n")
+            } else {
+                append("🚨 EMERGENCY ALERT from $userName!\n\n")
+                append("I need help! This is an automated safety alert from SafeWalk.\n\n")
+            }
             if (userPhone.isNotBlank()) {
                 append("📞 My number: $userPhone\n\n")
             }
@@ -61,15 +66,16 @@ object SmsHelper {
         userPhone: String = "",
         retryCount: Int = 0,
         maxRetries: Int = Constants.SMS_MAX_RETRIES,
+        customMessage: String? = null,
     ): Boolean {
         if (!hasSmsPermission(context)) {
             Log.w(TAG, "SMS permission not granted, scheduling retry for $phoneNumber")
-            scheduleRetry(context, phoneNumber, userName, userPhone, latitude, longitude, retryCount, maxRetries)
+            scheduleRetry(context, phoneNumber, userName, userPhone, latitude, longitude, retryCount, maxRetries, customMessage)
             return false
         }
 
         return try {
-            val message = buildEmergencyMessage(context, userName, userPhone, latitude, longitude)
+            val message = buildEmergencyMessage(context, userName, userPhone, latitude, longitude, customMessage)
             val smsManager = context.getSystemService(SmsManager::class.java)
             val parts = smsManager.divideMessage(message)
 
@@ -92,6 +98,7 @@ object SmsHelper {
                         putExtra("longitude", longitude)
                         putExtra("retry_count", retryCount)
                         putExtra("max_retries", maxRetries)
+                        putExtra("custom_message", customMessage)
                         setPackage(context.packageName)
                     },
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -123,7 +130,7 @@ object SmsHelper {
             true
         } catch (e: Exception) {
             Log.e(TAG, "SMS send failed to $phoneNumber", e)
-            scheduleRetry(context, phoneNumber, userName, userPhone, latitude, longitude, retryCount, maxRetries)
+            scheduleRetry(context, phoneNumber, userName, userPhone, latitude, longitude, retryCount, maxRetries, customMessage)
             false
         }
     }
@@ -141,6 +148,7 @@ object SmsHelper {
         longitude: Double,
         currentRetry: Int,
         maxRetries: Int,
+        customMessage: String? = null,
     ) {
         if (currentRetry >= maxRetries) {
             Log.e(TAG, "Max retries ($maxRetries) exhausted for $phoneNumber — SMS could not be delivered")
@@ -157,6 +165,7 @@ object SmsHelper {
             .putDouble(SmsRetryWorker.KEY_LON, longitude)
             .putInt(SmsRetryWorker.KEY_RETRY_COUNT, currentRetry + 1)
             .putInt(SmsRetryWorker.KEY_MAX_RETRIES, maxRetries)
+            .putString(SmsRetryWorker.KEY_CUSTOM_MESSAGE, customMessage)
             .build()
 
         val retryWork = OneTimeWorkRequestBuilder<SmsRetryWorker>()
@@ -201,8 +210,9 @@ class SmsSentReceiver : BroadcastReceiver() {
                     val userPhone = intent.getStringExtra("user_phone") ?: ""
                     val lat = intent.getDoubleExtra("latitude", 0.0)
                     val lon = intent.getDoubleExtra("longitude", 0.0)
+                    val customMsg = intent.getStringExtra("custom_message")
                     SmsHelper.scheduleRetry(
-                        context, phone, userName, userPhone, lat, lon, retryCount, maxRetries,
+                        context, phone, userName, userPhone, lat, lon, retryCount, maxRetries, customMsg,
                     )
                 }
             }

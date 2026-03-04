@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BatteryAlert
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.outlined.PhoneInTalk
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -73,6 +75,10 @@ fun SettingsScreen(
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val userPhone by viewModel.userPhone.collectAsStateWithLifecycle()
     val timerDuration by viewModel.timerDuration.collectAsStateWithLifecycle()
+    val sirenEnabled by viewModel.sirenEnabled.collectAsStateWithLifecycle()
+    val strobeEnabled by viewModel.strobeEnabled.collectAsStateWithLifecycle()
+    val lowBatteryAlert by viewModel.lowBatteryAlert.collectAsStateWithLifecycle()
+    val networkLossAlert by viewModel.networkLossAlert.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val devicePolicyManager = remember {
@@ -271,6 +277,50 @@ fun SettingsScreen(
                 description = "Automatically call your primary emergency contact",
                 checked = autoCall,
                 onCheckedChange = { viewModel.setAutoCall(it) },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ── Deterrent Mode Section ──
+        SettingsSection(title = "Deterrent Mode", icon = Icons.Outlined.VolumeUp) {
+            SettingsToggle(
+                title = "Loud Siren",
+                description = "Play high-volume alarm sound during panic",
+                checked = sirenEnabled,
+                onCheckedChange = { viewModel.setSirenEnabled(it) },
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+            )
+            SettingsToggle(
+                title = "Strobe Light",
+                description = "Blink flashlight rapidly to attract attention",
+                checked = strobeEnabled,
+                onCheckedChange = { viewModel.setStrobeEnabled(it) },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ── System Alerts Section ──
+        SettingsSection(title = "System Alerts", icon = Icons.Outlined.BatteryAlert) {
+            SettingsToggle(
+                title = "Low Battery SOS",
+                description = "Notify contacts when battery is critically low",
+                checked = lowBatteryAlert,
+                onCheckedChange = { viewModel.setLowBatteryAlert(it) },
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+            )
+            SettingsToggle(
+                title = "Network Loss SOS",
+                description = "Notify contacts if phone goes offline/airplane mode",
+                checked = networkLossAlert,
+                onCheckedChange = { viewModel.setNetworkLossAlert(it) },
             )
         }
 
