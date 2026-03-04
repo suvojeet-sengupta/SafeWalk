@@ -63,6 +63,14 @@ class DeterrentManager @Inject constructor(
             val alertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
 
+            // Force volume to max for the alarm stream
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+            audioManager.setStreamVolume(
+                android.media.AudioManager.STREAM_ALARM,
+                audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_ALARM),
+                0
+            )
+
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(context, alertUri)
                 setAudioAttributes(
@@ -75,7 +83,7 @@ class DeterrentManager @Inject constructor(
                 prepare()
                 start()
             }
-            Log.d(TAG, "Siren started")
+            Log.d(TAG, "Siren started at maximum volume (Override silent/vibrate)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start siren", e)
         }

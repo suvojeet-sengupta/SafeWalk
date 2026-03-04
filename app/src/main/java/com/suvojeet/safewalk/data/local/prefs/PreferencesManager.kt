@@ -44,7 +44,7 @@ class PreferencesManager @Inject constructor(
     }
 
     // Shake detection
-    val isShakeEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.SHAKE_ENABLED] ?: true }
+    val isShakeEnabled: Flow<Boolean> = dataStore.data.map { it[Keys.SHAKE_ENABLED] ?: false }
     val shakeSensitivity: Flow<Float> = dataStore.data.map { it[Keys.SHAKE_SENSITIVITY] ?: 12.0f }
 
     suspend fun setShakeEnabled(enabled: Boolean) {
