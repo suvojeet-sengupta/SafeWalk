@@ -36,6 +36,7 @@ class PreferencesManager @Inject constructor(
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val DARK_THEME = booleanPreferencesKey("dark_theme")
         val USER_NAME = stringPreferencesKey("user_name")
+        val USER_PHONE = stringPreferencesKey("user_phone")
     }
 
     // Shake detection
@@ -99,5 +100,12 @@ class PreferencesManager @Inject constructor(
 
     suspend fun setUserName(name: String) {
         dataStore.edit { it[Keys.USER_NAME] = name }
+    }
+
+    // User phone number (included in SOS messages so contacts can call back)
+    val userPhone: Flow<String> = dataStore.data.map { it[Keys.USER_PHONE] ?: "" }
+
+    suspend fun setUserPhone(phone: String) {
+        dataStore.edit { it[Keys.USER_PHONE] = phone }
     }
 }

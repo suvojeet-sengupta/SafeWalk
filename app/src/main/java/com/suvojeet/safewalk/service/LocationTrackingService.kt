@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Looper
+import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -37,6 +39,7 @@ class LocationTrackingService : LifecycleService() {
 
     private var lastLocation: LocationData? = null
     private var isPanicMode = false
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -49,6 +52,11 @@ class LocationTrackingService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
 
         isPanicMode = intent?.getBooleanExtra(EXTRA_PANIC_MODE, false) ?: false
+
+        // In panic mode, acquire WakeLock so attacker can't kill tracking by pressing power button
+        if (isPanicMode) {
+            acquirePanicWakeLock()
+        }
 
         startForeground(
             NOTIFICATION_ID,
@@ -152,9 +160,31 @@ class LocationTrackingService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
         fusedLocationClient.removeLocationUpdates(locationCallback)
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+                Log.d(TAG, "Panic WakeLock released")
+            }
+        }
+    }
+
+    /**
+     * Acquire WakeLock during panic mode to prevent the phone from sleeping.
+     * Even if the attacker presses the power button, tracking continues.
+     */
+    private fun acquirePanicWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "SafeWalk::LocationPanicWakeLock",
+        ).apply {
+            acquire(60 * 60 * 1000L) // 1 hour max
+        }
+        Log.d(TAG, "Panic WakeLock acquired — location tracking will persist")
     }
 
     companion object {
+        private const val TAG = "LocationTrackingService"
         private const val NOTIFICATION_ID = 1001
         const val EXTRA_PANIC_MODE = "extra_panic_mode"
 

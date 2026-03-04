@@ -38,6 +38,11 @@ object Constants {
     const val CHANNEL_TIMER = "check_in_timer"
     const val CHANNEL_GENERAL = "general"
 
+    // SMS retry
+    const val SMS_MAX_RETRIES = 5
+    const val SMS_RETRY_BASE_DELAY_SEC = 15L
+
     // Work tags
     const val WORK_TAG_CHECK_IN = "check_in_timer"
+    const val WORK_TAG_SMS_RETRY = "sms_retry"
 }

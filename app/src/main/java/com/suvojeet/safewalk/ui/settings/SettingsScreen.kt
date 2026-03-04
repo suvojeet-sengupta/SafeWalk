@@ -1,5 +1,8 @@
 package com.suvojeet.safewalk.ui.settings
 
+import android.app.admin.DevicePolicyManager
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,15 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhoneInTalk
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
@@ -39,13 +46,19 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.suvojeet.safewalk.receiver.SafeWalkDeviceAdminReceiver
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -58,7 +71,17 @@ fun SettingsScreen(
     val autoCall by viewModel.autoCall.collectAsStateWithLifecycle()
     val darkTheme by viewModel.darkTheme.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val userPhone by viewModel.userPhone.collectAsStateWithLifecycle()
     val timerDuration by viewModel.timerDuration.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+    val devicePolicyManager = remember {
+        context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+    }
+    val adminComponent = remember { SafeWalkDeviceAdminReceiver.getComponentName(context) }
+    var isDeviceAdminActive by remember {
+        mutableStateOf(devicePolicyManager.isAdminActive(adminComponent))
+    }
 
     Column(
         modifier = Modifier
@@ -104,6 +127,33 @@ fun SettingsScreen(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 ),
                 placeholder = { Text("Enter your name") },
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Your Phone Number",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = "Included in SOS messages so contacts can call you back",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = userPhone,
+                onValueChange = { viewModel.setUserPhone(it) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                ),
+                placeholder = { Text("+91 XXXXX XXXXX") },
             )
         }
 
@@ -234,6 +284,67 @@ fun SettingsScreen(
                 checked = darkTheme,
                 onCheckedChange = { viewModel.setDarkTheme(it) },
             )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ── Anti-Tamper Protection Section ──
+        SettingsSection(title = "Protection", icon = Icons.Outlined.Lock) {
+            Text(
+                text = "Uninstall Prevention",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = "When enabled, the app cannot be uninstalled without deactivating admin first. This prevents an attacker from removing SafeWalk from your phone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (isDeviceAdminActive) {
+                ElevatedCard(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "✅ Protection Active",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            } else {
+                Button(
+                    onClick = {
+                        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                            putExtra(
+                                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                                "SafeWalk needs Device Admin to prevent attackers from uninstalling the app during an emergency.",
+                            )
+                        }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                    Text("Enable Protection", fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))

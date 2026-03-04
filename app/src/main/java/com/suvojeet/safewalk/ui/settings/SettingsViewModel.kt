@@ -34,6 +34,9 @@ class SettingsViewModel @Inject constructor(
     val userName: StateFlow<String> = preferencesManager.userName
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SafeWalk User")
 
+    val userPhone: StateFlow<String> = preferencesManager.userPhone
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     val timerDuration: StateFlow<Int> = preferencesManager.defaultTimerDuration
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.DEFAULT_CHECK_IN_DURATION_MIN)
 
@@ -59,6 +62,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setUserName(name: String) {
         viewModelScope.launch { preferencesManager.setUserName(name) }
+    }
+
+    fun setUserPhone(phone: String) {
+        viewModelScope.launch { preferencesManager.setUserPhone(phone) }
     }
 
     fun setTimerDuration(minutes: Int) {

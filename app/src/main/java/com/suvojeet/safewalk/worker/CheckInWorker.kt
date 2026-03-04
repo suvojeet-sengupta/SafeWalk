@@ -61,6 +61,7 @@ class CheckInWorker @AssistedInject constructor(
 
         val contacts = contactDao.getActiveContacts().first()
         val userName = preferencesManager.userName.first()
+        val userPhone = preferencesManager.userPhone.first()
         contacts.forEach { contact ->
             SmsHelper.sendEmergencySms(
                 context = applicationContext,
@@ -68,6 +69,7 @@ class CheckInWorker @AssistedInject constructor(
                 userName = userName,
                 latitude = lat,
                 longitude = lon,
+                userPhone = userPhone,
             )
         }
 

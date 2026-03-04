@@ -9,9 +9,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.net.Uri
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
@@ -43,9 +45,27 @@ class PanicService : LifecycleService() {
     @Inject
     lateinit var preferencesManager: PreferencesManager
 
+    private var wakeLock: PowerManager.WakeLock? = null
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        acquireWakeLock()
+    }
+
+    /**
+     * Acquire a partial wake lock to prevent the device from sleeping during panic.
+     * Even if the attacker presses the power button, the service keeps running.
+     */
+    private fun acquireWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "SafeWalk::PanicWakeLock",
+        ).apply {
+            acquire(30 * 60 * 1000L) // 30 minutes max
+        }
+        Log.d(TAG, "WakeLock acquired — device will stay awake during emergency")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -58,7 +78,7 @@ class PanicService : LifecycleService() {
         )
 
         triggerPanicSequence()
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     @Suppress("MissingPermission")
@@ -88,9 +108,10 @@ class PanicService : LifecycleService() {
                 )
                 locationRepository.pushLocation(locationData)
 
-                // Send SMS to all active contacts
+                // Send SMS to all active contacts (with retry mechanism)
                 val contactList = contactDao.getActiveContacts().first()
                 val userName = preferencesManager.userName.first()
+                val userPhone = preferencesManager.userPhone.first()
                 contactList.forEach { contact ->
                     SmsHelper.sendEmergencySms(
                         context = this@PanicService,
@@ -98,6 +119,7 @@ class PanicService : LifecycleService() {
                         userName = userName,
                         latitude = lat,
                         longitude = lon,
+                        userPhone = userPhone,
                     )
                 }
 
@@ -170,6 +192,7 @@ class PanicService : LifecycleService() {
         .setSmallIcon(R.drawable.ic_launcher_foreground)
         .setPriority(NotificationCompat.PRIORITY_MAX)
         .setCategory(NotificationCompat.CATEGORY_ALARM)
+        .setOngoing(true) // Cannot be swiped away
         .setContentIntent(
             PendingIntent.getActivity(
                 this,
@@ -180,7 +203,18 @@ class PanicService : LifecycleService() {
         )
         .build()
 
+    override fun onDestroy() {
+        super.onDestroy()
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+                Log.d(TAG, "WakeLock released")
+            }
+        }
+    }
+
     companion object {
+        private const val TAG = "PanicService"
         private const val NOTIFICATION_ID = 1002
 
         fun start(context: Context) {

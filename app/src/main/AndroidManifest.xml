@@ -31,6 +31,12 @@
     <!-- Boot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Device Admin (anti-tamper) -->
+    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN" />
+
+    <!-- Keep screen on for panic mode -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <application
         android:name=".SafeWalkApp"
         android:allowBackup="true"
@@ -81,6 +87,38 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Device Admin Receiver (prevents uninstall during emergency) -->
+        <receiver
+            android:name=".receiver.SafeWalkDeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_receiver" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- SMS Sent Status Receiver -->
+        <receiver
+            android:name=".util.SmsSentReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.suvojeet.safewalk.SMS_SENT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- SMS Delivery Confirmation Receiver -->
+        <receiver
+            android:name=".util.SmsDeliveredReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.suvojeet.safewalk.SMS_DELIVERED" />
             </intent-filter>
         </receiver>
 
