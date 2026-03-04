@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -60,18 +62,18 @@ private fun PermissionDeniedContent(
     val context = LocalContext.current
     
     // Determine which permissions are missing to show appropriate message
-    val isLocationMissing = permissions.contains(Manifest.permission.ACCESS_FINE_LOCATION) && 
-        !permissionState.permissions.find { it.permission == Manifest.permission.ACCESS_FINE_LOCATION }?.status?.isGranted!!
-        
-    val isSmsMissing = permissions.contains(Manifest.permission.SEND_SMS) && 
-        !permissionState.permissions.find { it.permission == Manifest.permission.SEND_SMS }?.status?.isGranted!!
-        
-    val isCallPhoneMissing = permissions.contains(Manifest.permission.CALL_PHONE) && 
-        !permissionState.permissions.find { it.permission == Manifest.permission.CALL_PHONE }?.status?.isGranted!!
+    val isLocationMissing = permissions.contains(Manifest.permission.ACCESS_FINE_LOCATION) &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
 
-    val isNotificationMissing = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU && 
-        permissions.contains(Manifest.permission.POST_NOTIFICATIONS) && 
-        !permissionState.permissions.find { it.permission == Manifest.permission.POST_NOTIFICATIONS }?.status?.isGranted!!
+    val isSmsMissing = permissions.contains(Manifest.permission.SEND_SMS) &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED
+
+    val isCallPhoneMissing = permissions.contains(Manifest.permission.CALL_PHONE) &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED
+
+    val isNotificationMissing = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+        permissions.contains(Manifest.permission.POST_NOTIFICATIONS) &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
 
     Column(
         modifier = Modifier
